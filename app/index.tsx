@@ -35,7 +35,7 @@ export default function GalleryScreen() {
             <Image source={{ uri: item.image_uri }} style={{ width: '100%', height: 100 }} />
             <View style={{ padding: 5 }}>
               <Text style={{ fontWeight: 'bold' }} numberOfLines={1}>{item.title}</Text>
-              <Text style={{ fontSize: 10, color: '#666' }}>Data: {item.created_at.split('T')[0]}</Text>
+              <Text style={{ fontSize: 12, color: '#8E8E93' }}>📅 {item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : ''}</Text>
               
               {item.latitude && item.longitude ? (
                 <Text style={{ fontSize: 9, color: '#007AFF', marginTop: 2 }}>
