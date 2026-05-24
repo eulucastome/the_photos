@@ -31,3 +31,8 @@ export const deletePhoto = async (id: number) => {
   const db = await getDb();
   await db.runAsync('DELETE FROM photos WHERE id = ?;', [id]);
 };
+
+export const updatePhotoTitle = async (id: number, newTitle: string) => {
+  const db = await getDb();
+  await db.runAsync('UPDATE photos SET title = ? WHERE id = ?;', [newTitle, id]);
+};
