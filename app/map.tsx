@@ -2,65 +2,57 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { useIsFocused } from '@react-navigation/native';
 import { fetchPhotos, Photo } from '../database/repositories/photos.repository';
 
 export default function MapScreen() {
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [track, setTrack] = useState(true);
   const [region, setRegion] = useState<any>(null);
+  const [track, setTrack] = useState(true);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
+    if (!isFocused) return;
+
     async function load() {
-      setTrack(true);
+      // Força o mapa a ficar ativo aceitando re-renderização de imagem
+      setTrack(true); 
 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({});
-        setRegion({ 
-          latitude: loc.coords.latitude, 
-          longitude: loc.coords.longitude, 
-          latitudeDelta: 0.01, 
-          longitudeDelta: 0.01 
-        });
+        setRegion({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
       } else {
         setRegion({ latitude: -23.42, longitude: -51.93, latitudeDelta: 0.01, longitudeDelta: 0.01 });
       }
       
       const data = await fetchPhotos();
       setPhotos(data.filter((p: any) => p.latitude && p.longitude));
-      
-      setTimeout(() => setTrack(false), 1500);
+
+      // Deixa o mapa livre para desenhar as fotos por 2 segundos e depois trava para economizar memória
+      setTimeout(() => setTrack(false), 2000);
     }
     load();
-  }, []);
+  }, [isFocused]);
 
-  if (!region) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
+  if (!region) return <ActivityIndicator style={{ flex: 1 }} color="#007AFF" />;
 
   return (
-    <MapView 
-      style={{ flex: 1 }} 
-      provider={PROVIDER_GOOGLE} 
-      region={region} 
-      onRegionChangeComplete={setRegion}
-    >
+    <MapView style={{ flex: 1 }} provider={PROVIDER_GOOGLE} region={region} onRegionChangeComplete={setRegion}>
       {photos.map((p: any) => (
         <Marker key={p.id} coordinate={{ latitude: p.latitude, longitude: p.longitude }} tracksViewChanges={track}>
-          {/* O Marcador com a Foto */}
-          <View style={styles.marker}>
-            <Image source={{ uri: p.image_uri }} style={styles.img} />
+          <View style={styles.pin}>
+            <Image 
+              source={{ uri: p.image_uri }} 
+              style={styles.img} 
+            />
+            <View style={styles.arrow} />
           </View>
-
-          {/* Balão que aparece ao tocar na foto */}
+          
           <Callout>
             <View style={styles.callout}>
-              <Text style={styles.title}>{p.title}</Text>
-              <Text style={styles.date}>
+              <Text style={{ fontWeight: '600', fontSize: 13, color: '#333' }} numberOfLines={1}>{p.title}</Text>
+              <Text style={{ fontSize: 11, color: '#8E8E93', marginTop: 2 }}>
                 📅 {p.created_at ? new Date(p.created_at).toLocaleDateString("pt-BR") : ""}
               </Text>
             </View>
@@ -72,9 +64,8 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
-  marker: { alignItems: 'center' },
-  img: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: '#007AFF', backgroundColor: '#eee' },
-  callout: { padding: 5, minWidth: 100, alignItems: 'center' },
-  title: { fontWeight: 'bold', fontSize: 12, color: '#333', textAlign: 'center' },
-  date: { fontSize: 10, color: '#666', marginTop: 2 }
+  pin: { alignItems: 'center', justifyContent: 'center' },
+  img: { width: 44, height: 44, borderRadius: 22, borderWidth: 3, borderColor: '#FFF', backgroundColor: '#E5E5EA', elevation: 3, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 2 },
+  arrow: { borderTopColor: '#FFF', borderWidth: 5, borderColor: 'transparent', marginTop: -1, elevation: 3 },
+  callout: { width: 130, height: 45, justifyContent: 'center', alignItems: 'center' }
 });
